@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:gravity="center">
+
+    <Button
+        android:id="@+id/btn_button_demo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="按钮演示"
+        android:layout_marginBottom="12dp" />
+
+    <Button
+        android:id="@+id/btn_dialog_demo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="对话框演示"
+        android:layout_marginBottom="12dp" />
+
+    <Button
+        android:id="@+id/btn_input_demo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="输入框演示"
+        android:layout_marginBottom="12dp" />
+
+    <Button
+        android:id="@+id/btn_list_demo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="列表演示"
+        android:layout_marginBottom="12dp" />
+
+    <Button
+        android:id="@+id/btn_media_demo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="多媒体演示"
+        android:layout_marginBottom="12dp" />
+
+    <Button
+        android:id="@+id/btn_router_demo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="路由演示"
+        android:layout_marginBottom="12dp" />
+
+    <Button
+        android:id="@+id/btn_bottom_nav_demo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="底部导航栏演示"
+        android:backgroundTint="#1976D2" />
+
+</LinearLayout>

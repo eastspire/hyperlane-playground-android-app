@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:background="#F5F5F5">
+
+    <!-- 标题 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Trace Query"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:textColor="#2C3E50"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="30dp" />
+
+    <!-- 搜索容器 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="20dp">
+
+        <EditText
+            android:id="@+id/et_trace_id"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="Enter Trace ID"
+            android:padding="12dp"
+            android:background="@drawable/trace_input_background"
+            android:textSize="16sp"
+            android:imeOptions="actionSearch"
+            android:inputType="text"
+            android:layout_marginEnd="10dp" />
+
+        <ImageButton
+            android:id="@+id/btn_search"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/search_button_background"
+            android:src="@android:drawable/ic_menu_search"
+            android:contentDescription="Search"
+            android:scaleType="centerInside"
+            android:padding="12dp"
+            android:tint="#FFFFFF" />
+    </LinearLayout>
+
+    <!-- 请求 URL -->
+    <TextView
+        android:id="@+id/tv_request_url"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp"
+        android:background="@drawable/trace_url_background"
+        android:textSize="12sp"
+        android:fontFamily="monospace"
+        android:textColor="#495057"
+        android:layout_marginBottom="10dp"
+        android:visibility="gone"
+        android:clickable="true"
+        android:focusable="true" />
+
+    <!-- 状态消息 -->
+    <TextView
+        android:id="@+id/tv_status_message"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="10dp"
+        android:textStyle="bold"
+        android:textSize="14sp"
+        android:layout_marginBottom="10dp"
+        android:visibility="gone" />
+
+    <!-- 结果显示区域 -->
+    <ScrollView
+        android:id="@+id/scroll_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@drawable/trace_result_background"
+        android:padding="15dp">
+
+        <TextView
+            android:id="@+id/tv_result"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Please enter a Trace ID and click the search button"
+            android:textSize="14sp"
+            android:fontFamily="monospace"
+            android:lineSpacingMultiplier="1.5"
+            android:textColor="#7F8C8D"
+            android:textIsSelectable="true" />
+    </ScrollView>
+
+</LinearLayout>

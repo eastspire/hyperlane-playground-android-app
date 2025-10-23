@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="数据导出"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="导出聊天记录"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/btn_export_chat_json"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="导出聊天记录 (JSON)"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/btn_export_chat_txt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="导出聊天记录 (TXT)"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="导出上传记录"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/btn_export_upload"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="导出上传记录 (JSON)"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="导出用户数据"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/btn_export_user_data"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="导出用户数据 (JSON)"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="其他操作"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/btn_direct_download"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="直接下载示例文件"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="说明：\n• 点击按钮后会唤起浏览器进行下载\n• 支持 JSON、TXT、CSV 等格式\n• 下载的文件会保存到浏览器的默认下载目录"
+            android:textSize="14sp"
+            android:textColor="#666666"
+            android:layout_marginTop="16dp"
+            android:lineSpacingExtra="4dp" />
+
+    </LinearLayout>
+
+</ScrollView>
