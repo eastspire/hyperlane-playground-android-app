@@ -12,7 +12,8 @@ public class ChatApplication extends Application {
     public void onCreate() {
         super.onCreate();
         
-        // 初始化日志系统
+        // 初始化日志系统（启用持久化存储）
+        NativeLogManager.getInstance().initialize(this);
         NativeLogManager.getInstance().i(TAG, "应用启动");
         
         // 初始化 UUID
