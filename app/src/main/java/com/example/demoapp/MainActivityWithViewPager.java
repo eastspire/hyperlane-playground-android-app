@@ -34,8 +34,8 @@ public class MainActivityWithViewPager extends AppCompatActivity {
             viewPager.setAdapter(adapter);
             Log.d(TAG, "Adapter set");
             
-            // 默认显示第一页（聊天页面）
-            viewPager.setCurrentItem(0, false);
+            // 默认显示文件上传界面（ExploreFragment）- 索引从 1 改为 2
+            viewPager.setCurrentItem(2, false);
             
             // 禁用过度滚动效果
             viewPager.setOffscreenPageLimit(1);

@@ -25,6 +25,7 @@ import com.example.demoapp.R;
 import com.example.demoapp.chat.ChatAdapter;
 import com.example.demoapp.chat.ChatMessage;
 import com.example.demoapp.chat.WebSocketManager;
+import com.example.demoapp.log.NativeLogManager;
 import com.example.demoapp.utils.UUIDHelper;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.util.ArrayList;
@@ -33,6 +34,7 @@ import java.util.List;
 public class ChatFragment extends Fragment {
     
     private static final int PICK_FILE_REQUEST = 1001;
+    private static final String TAG = "ChatFragment";
     
     private RecyclerView recyclerView;
     private ChatAdapter adapter;
@@ -71,6 +73,8 @@ public class ChatFragment extends Fragment {
         fabScrollBottom = view.findViewById(R.id.fab_scroll_bottom);
         tvConnectionStatus = view.findViewById(R.id.tv_connection_status);
         connectionIndicator = view.findViewById(R.id.connection_indicator);
+        
+        NativeLogManager.getInstance().i(TAG, "ChatFragment 初始化完成");
     }
     
     private void setupRecyclerView() {
@@ -93,12 +97,18 @@ public class ChatFragment extends Fragment {
         webSocketManager = new WebSocketManager(new WebSocketManager.WebSocketListener() {
             @Override
             public void onConnected() {
-                mainHandler.post(() -> updateConnectionStatus("connected"));
+                mainHandler.post(() -> {
+                    updateConnectionStatus("connected");
+                    NativeLogManager.getInstance().i(TAG, "WebSocket 连接成功");
+                });
             }
             
             @Override
             public void onDisconnected() {
-                mainHandler.post(() -> updateConnectionStatus("disconnected"));
+                mainHandler.post(() -> {
+                    updateConnectionStatus("disconnected");
+                    NativeLogManager.getInstance().e(TAG, "WebSocket 连接断开");
+                });
             }
             
             @Override
@@ -106,6 +116,8 @@ public class ChatFragment extends Fragment {
                 mainHandler.post(() -> {
                     messages.add(message);
                     adapter.notifyItemInserted(messages.size() - 1);
+                    
+                    NativeLogManager.getInstance().d(TAG, "收到消息: " + message.getData());
                     
                     if (isNearBottom || message.isSelf() || message.isGptResponse()) {
                         scrollToBottom();
@@ -121,18 +133,24 @@ public class ChatFragment extends Fragment {
                 mainHandler.post(() -> {
                     String errorMsg = (error != null && !error.isEmpty()) ? error : "发生错误";
                     Toast.makeText(getContext(), errorMsg, Toast.LENGTH_SHORT).show();
+                    NativeLogManager.getInstance().e(TAG, "WebSocket 错误: " + errorMsg);
                 });
             }
             
             @Override
             public void onOnlineCountUpdate(String count) {
-                mainHandler.post(() -> updatePlaceholder(count));
+                mainHandler.post(() -> {
+                    updatePlaceholder(count);
+                    NativeLogManager.getInstance().d(TAG, "在线人数更新: " + count);
+                });
             }
         });
         
         webSocketManager.connect();
+        NativeLogManager.getInstance().i(TAG, "开始连接 WebSocket");
     }
     
+
     private void setupListeners() {
         btnSend.setOnClickListener(v -> sendMessage());
         
@@ -377,5 +395,6 @@ public class ChatFragment extends Fragment {
         if (webSocketManager != null) {
             webSocketManager.disconnect();
         }
+        NativeLogManager.getInstance().i(TAG, "ChatFragment 销毁");
     }
 }

@@ -2,6 +2,7 @@ package com.example.demoapp.chat;
 
 import android.os.Handler;
 import android.os.Looper;
+import com.example.demoapp.log.NativeLogManager;
 import com.example.demoapp.utils.UUIDHelper;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -14,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 
 public class WebSocketManager {
     
+    private static final String TAG = "WebSocketManager";
     private static final String WS_URL = "ws://120.53.248.2:65002/api/chat?uuid=";
     private static final long PING_INTERVAL = 20000; // 20秒发送一次ping
     private static final long RECONNECT_INTERVAL = 3000;
@@ -51,8 +53,11 @@ public class WebSocketManager {
     
     public void connect() {
         String uuid = UUIDHelper.getUUID();
+        String url = WS_URL + uuid;
+        NativeLogManager.getInstance().i(TAG, "开始连接 WebSocket: " + url);
+        
         Request request = new Request.Builder()
-                .url(WS_URL + uuid)
+                .url(url)
                 .build();
         
         webSocket = client.newWebSocket(request, new okhttp3.WebSocketListener() {
@@ -60,24 +65,28 @@ public class WebSocketManager {
             public void onOpen(WebSocket webSocket, Response response) {
                 isConnected = true;
                 reconnectAttempts = 0;
+                NativeLogManager.getInstance().i(TAG, "WebSocket 连接成功");
                 listener.onConnected();
                 startPing();
             }
             
             @Override
             public void onMessage(WebSocket webSocket, String text) {
+                NativeLogManager.getInstance().d(TAG, "收到消息: " + text.substring(0, Math.min(100, text.length())));
                 handleMessage(text);
             }
             
             @Override
             public void onClosing(WebSocket webSocket, int code, String reason) {
                 isConnected = false;
+                NativeLogManager.getInstance().i(TAG, "WebSocket 正在关闭: code=" + code + ", reason=" + reason);
                 stopPing();
             }
             
             @Override
             public void onClosed(WebSocket webSocket, int code, String reason) {
                 isConnected = false;
+                NativeLogManager.getInstance().e(TAG, "WebSocket 已关闭: code=" + code + ", reason=" + reason);
                 listener.onDisconnected();
                 reconnect();
             }
@@ -85,6 +94,7 @@ public class WebSocketManager {
             @Override
             public void onFailure(WebSocket webSocket, Throwable t, Response response) {
                 isConnected = false;
+                NativeLogManager.getInstance().e(TAG, "WebSocket 连接失败: " + t.getMessage());
                 listener.onError(t.getMessage());
                 listener.onDisconnected();
                 reconnect();
@@ -98,11 +108,13 @@ public class WebSocketManager {
             String type = json.has("type") ? json.get("type").getAsString() : "";
             
             if ("Pang".equals(type)) {
+                NativeLogManager.getInstance().d(TAG, "收到 Pang 响应");
                 return;
             }
             
             if ("OnlineCount".equals(type)) {
                 String data = json.has("data") ? json.get("data").getAsString() : "";
+                NativeLogManager.getInstance().i(TAG, "在线人数更新: " + data);
                 listener.onOnlineCountUpdate(data);
                 return;
             }
@@ -111,11 +123,14 @@ public class WebSocketManager {
             String data = json.has("data") ? json.get("data").getAsString() : "";
             String time = json.has("time") ? json.get("time").getAsString() : "";
             
+            NativeLogManager.getInstance().d(TAG, "处理消息: type=" + type + ", name=" + name);
+            
             ChatMessage message = new ChatMessage(type, name, data, time);
             message.setSelf(name.equals(UUIDHelper.getUUID()));
             
             listener.onMessageReceived(message);
         } catch (Exception e) {
+            NativeLogManager.getInstance().e(TAG, "解析消息失败: " + e.getMessage());
             listener.onError("Failed to parse message: " + e.getMessage());
         }
     }
@@ -149,11 +164,13 @@ public class WebSocketManager {
                 json.addProperty("data", "");
                 boolean sent = webSocket.send(json.toString());
                 if (!sent) {
-                    android.util.Log.w("WebSocketManager", "Ping send failed");
+                    NativeLogManager.getInstance().e(TAG, "Ping 发送失败");
+                } else {
+                    NativeLogManager.getInstance().d(TAG, "Ping 发送成功");
                 }
             }
         } catch (Exception e) {
-            android.util.Log.e("WebSocketManager", "Error sending ping", e);
+            NativeLogManager.getInstance().e(TAG, "发送 Ping 异常: " + e.getMessage());
         }
     }
     
@@ -184,30 +201,36 @@ public class WebSocketManager {
             try {
                 // 检查消息大小，如果过大则警告
                 if (message.length() > 50000) {
-                    android.util.Log.w("WebSocketManager", "Large message: " + message.length() + " bytes");
+                    NativeLogManager.getInstance().e(TAG, "消息过大: " + message.length() + " bytes");
                 }
                 boolean result = webSocket.send(message);
                 if (!result) {
-                    android.util.Log.e("WebSocketManager", "Failed to send message");
+                    NativeLogManager.getInstance().e(TAG, "消息发送失败");
+                } else {
+                    NativeLogManager.getInstance().i(TAG, "消息发送成功: " + message.substring(0, Math.min(50, message.length())));
                 }
                 return result;
             } catch (Exception e) {
-                android.util.Log.e("WebSocketManager", "Exception sending message", e);
+                NativeLogManager.getInstance().e(TAG, "发送消息异常: " + e.getMessage());
                 return false;
             }
         }
-        android.util.Log.w("WebSocketManager", "Cannot send: webSocket=" + (webSocket != null) + ", connected=" + isConnected);
+        NativeLogManager.getInstance().e(TAG, "无法发送消息: webSocket=" + (webSocket != null) + ", connected=" + isConnected);
         return false;
     }
     
     private void reconnect() {
         if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
             reconnectAttempts++;
+            NativeLogManager.getInstance().i(TAG, "尝试重连 (" + reconnectAttempts + "/" + MAX_RECONNECT_ATTEMPTS + ")");
             handler.postDelayed(() -> connect(), RECONNECT_INTERVAL);
+        } else {
+            NativeLogManager.getInstance().e(TAG, "达到最大重连次数，停止重连");
         }
     }
     
     public void disconnect() {
+        NativeLogManager.getInstance().i(TAG, "主动断开 WebSocket 连接");
         stopPing();
         if (webSocket != null) {
             webSocket.close(1000, "Client disconnect");

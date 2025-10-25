@@ -28,18 +28,6 @@
             </intent-filter>
         </activity>
         
-        <activity android:name=".MainActivityWithNav" />
-        <activity android:name=".MainActivity" />
-        <activity android:name=".ButtonDemoActivity" />
-        <activity android:name=".DialogDemoActivity" />
-        <activity android:name=".InputDemoActivity" />
-        <activity android:name=".ListDemoActivity" />
-        <activity android:name=".MediaDemoActivity" />
-        <activity android:name=".RouterDemoActivity" />
-        <activity android:name=".RouterPageAActivity" />
-        <activity android:name=".RouterPageBActivity" />
-        <activity android:name=".RouterPageCActivity" />
-        
         <!-- 视频播放器 - 支持 Range 请求和自动屏幕方向 -->
         <activity 
             android:name=".upload.VideoPlayerActivity"

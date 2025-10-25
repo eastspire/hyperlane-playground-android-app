@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F8F9FA">
+
+    <!-- 顶部标题栏 -->
+    <LinearLayout
+        android:id="@+id/title_bar"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="#FFFFFF"
+        android:elevation="2dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Native Logs"
+            android:textColor="#2C3E50"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- 日志级别选择器 -->
+    <LinearLayout
+        android:id="@+id/log_level_selector"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:background="#FFFFFF"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="日志级别："
+            android:textSize="14sp"
+            android:textColor="#333333"
+            android:layout_gravity="center_vertical" />
+
+        <RadioGroup
+            android:id="@+id/log_level_group"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginStart="12dp">
+
+            <RadioButton
+                android:id="@+id/radio_error"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="ERROR"
+                android:textSize="13sp"
+                android:checked="true" />
+
+            <RadioButton
+                android:id="@+id/radio_info"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="INFO"
+                android:textSize="13sp"
+                android:layout_marginStart="12dp" />
+
+            <RadioButton
+                android:id="@+id/radio_debug"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="DEBUG"
+                android:textSize="13sp"
+                android:layout_marginStart="12dp" />
+        </RadioGroup>
+    </LinearLayout>
+
+    <!-- 日志列表 -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/log_recycler_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#FFFFFF"
+        android:padding="8dp" />
+
+    <!-- 清除按钮 -->
+    <Button
+        android:id="@+id/btn_clear_logs"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="清除日志"
+        android:textSize="14sp"
+        android:layout_margin="12dp" />
+
+</LinearLayout>
