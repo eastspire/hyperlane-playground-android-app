@@ -35,6 +35,18 @@
             android:screenOrientation="unspecified"
             android:theme="@style/Theme.AppCompat.NoActionBar" />
         
+        <!-- 聊天图片查看器 -->
+        <activity 
+            android:name=".chat.ImageViewerActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+        
+        <!-- 聊天视频播放器 -->
+        <activity 
+            android:name=".chat.VideoPlayerActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:screenOrientation="unspecified"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+        
     </application>
 
 </manifest>

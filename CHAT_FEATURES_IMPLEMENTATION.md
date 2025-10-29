@@ -12,12 +12,18 @@
 - 保持滚动位置不跳动
 - 显示加载指示器
 
-### 2. URL 超链接支持 ✨ 新增
-- 自动识别消息中的 URL 链接
-- 支持 Markdown 格式的链接 `[文本](url)`
-- 支持纯文本 URL（http:// 或 https://）
-- 点击链接在系统浏览器中打开
-- 自动为没有协议的 URL 添加 http:// 前缀
+### 2. Markdown 渲染和媒体支持 ✨ 增强
+- **Markdown 链接**：`[文本](url)` 格式的链接在浏览器中打开
+- **纯文本 URL**：自动识别 http/https 链接并在浏览器中打开
+- **图片展示**：Markdown 图片 `![alt](image_url)` 在 APP 内展示
+  - 支持格式：jpg, jpeg, png, gif, webp, bmp
+  - 点击图片全屏查看
+  - 使用 Glide 加载，支持缓存
+- **视频播放**：视频链接在 APP 内播放
+  - 支持格式：mp4, webm, mkv, avi, mov, m3u8
+  - 使用 ExoPlayer 播放
+  - 支持横竖屏切换
+- **IP 地址和端口号**：支持 `http://192.168.1.1:8080` 格式
 
 ### 3. 消息对齐方式
 - 消息从顶部开始显示（移除了 stackFromEnd）
@@ -26,35 +32,55 @@
 
 ## 修改的文件
 
-### ChatAdapter.java
-**新增功能：URL 超链接支持**
+### 1. build.gradle
+**新增依赖**：
+- Markwon 图片插件：`io.noties.markwon:image:4.6.2`
+- Markwon Glide 插件：`io.noties.markwon:image-glide:4.6.2`
+- Markwon HTML 插件：`io.noties.markwon:html:4.6.2`
+- Markwon Linkify 插件：`io.noties.markwon:linkify:4.6.2`
+- Glide 图片加载库：`com.github.bumptech.glide:glide:4.16.0`
+- ExoPlayer 视频播放器：`androidx.media3:media3-exoplayer:1.2.0`
+- ExoPlayer UI：`androidx.media3:media3-ui:1.2.0`
 
-1. **导入的新包**：
-   - `android.content.Intent`
-   - `android.net.Uri`
-   - `android.text.Spannable`
-   - `android.text.SpannableString`
-   - `android.text.Spanned`
-   - `android.text.style.ClickableSpan`
-   - `android.text.style.URLSpan`
-   - `java.util.regex.Matcher`
-   - `java.util.regex.Pattern`
+### 2. ChatAdapter.java
+**增强功能：Markdown 渲染和媒体支持**
+
+1. **Markwon 配置**：
+   - `GlideImagesPlugin` - 图片加载和显示
+   - `LinkifyPlugin` - 自动识别链接
+   - 自定义 `LinkResolver` - 根据链接类型分发处理
 
 2. **新增方法**：
-   - `makeLinkClickable(TextView textView)` - 处理 TextView 中的所有链接
-   - `openUrlInBrowser(String url)` - 在浏览器中打开 URL
+   - `isImageUrl(String url)` - 判断是否为图片链接
+   - `isVideoUrl(String url)` - 判断是否为视频链接
+   - `openImageViewer(String url)` - 打开图片查看器
+   - `openVideoPlayer(String url)` - 打开视频播放器
+   - `openUrlInBrowser(String url)` - 在浏览器中打开链接
 
 3. **链接处理逻辑**：
-   - 首先处理 Markdown 渲染后的 URLSpan
-   - 将 URLSpan 替换为自定义的 ClickableSpan
-   - 对于纯文本，使用正则表达式匹配 URL 模式
-   - 支持的 URL 格式：`https?://[...]`
+   - 图片链接 → ImageViewerActivity（APP 内查看）
+   - 视频链接 → VideoPlayerActivity（APP 内播放）
+   - 其他链接 → 系统浏览器
 
-4. **浏览器打开逻辑**：
-   - 使用 `Intent.ACTION_VIEW` 打开链接
-   - 自动添加 `http://` 前缀（如果缺失）
-   - 添加 `FLAG_ACTIVITY_NEW_TASK` 标志
-   - 异常处理确保应用不会崩溃
+### 3. ImageViewerActivity.java（新建）
+**图片查看器**：
+- 使用 Glide 加载图片
+- 支持缩放和平移
+- 点击关闭
+- 显示加载进度
+
+### 4. VideoPlayerActivity.java（新建）
+**视频播放器**：
+- 使用 ExoPlayer 播放视频
+- 支持多种视频格式
+- 支持横竖屏切换
+- 自动播放
+- 错误处理
+
+### 5. AndroidManifest.xml
+**注册新 Activity**：
+- ImageViewerActivity - 无 ActionBar 主题
+- VideoPlayerActivity - 无 ActionBar，支持屏幕旋转
 
 ### ChatFragmentNew.java & ChatFragment.java
 **历史消息加载 + 消息对齐调整**
@@ -74,15 +100,16 @@
 ### item_loading_history.xml（新建）
 - 历史消息加载指示器的布局文件
 
-## URL 链接使用示例
+## 使用示例
 
-### Markdown 格式链接
-```
+### 1. Markdown 链接（浏览器打开）
+```markdown
 [点击访问 Google](https://www.google.com)
 [查看文档](http://example.com/docs)
+[服务器地址](http://120.53.248.2:65002)
 ```
 
-### 纯文本 URL
+### 2. 纯文本 URL（浏览器打开）
 ```
 访问 https://www.google.com 了解更多
 查看 http://example.com 的内容
@@ -90,17 +117,38 @@
 本地测试：http://192.168.1.1:8080/api
 ```
 
-### IP地址和端口号支持 ✨
-```
-http://192.168.1.1:8080          → 支持
-http://120.53.248.2:65002        → 支持
-https://10.0.0.1:3000/api/test   → 支持
+### 3. Markdown 图片（APP 内展示）
+```markdown
+![示例图片](https://example.com/image.jpg)
+![头像](http://120.53.248.2:65002/uploads/avatar.png)
 ```
 
-### 自动补全协议
+支持的图片格式：
+- JPG/JPEG
+- PNG
+- GIF
+- WebP
+- BMP
+
+### 4. 视频链接（APP 内播放）
+```markdown
+[观看视频](https://example.com/video.mp4)
+[直播流](http://120.53.248.2:65002/stream.m3u8)
 ```
-www.google.com  → 自动转为 http://www.google.com
-example.com     → 自动转为 http://example.com
+
+支持的视频格式：
+- MP4
+- WebM
+- MKV
+- AVI
+- MOV
+- M3U8（HLS 直播流）
+
+### 5. IP 地址和端口号
+```
+http://192.168.1.1:8080          → 浏览器打开
+http://120.53.248.2:65002        → 浏览器打开
+https://10.0.0.1:3000/api/test   → 浏览器打开
 ```
 
 ## 技术细节

@@ -3,6 +3,7 @@ package com.example.demoapp.chat;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.text.Spannable;
 import android.text.SpannableString;
@@ -15,10 +16,18 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.target.Target;
 import com.example.demoapp.R;
+import io.noties.markwon.AbstractMarkwonPlugin;
 import io.noties.markwon.Markwon;
+import io.noties.markwon.MarkwonConfiguration;
 import io.noties.markwon.SoftBreakAddsNewLinePlugin;
+import io.noties.markwon.image.AsyncDrawable;
+import io.noties.markwon.image.glide.GlideImagesPlugin;
+import io.noties.markwon.linkify.LinkifyPlugin;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -37,10 +46,73 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.MessageViewHol
         this.messages = messages;
         this.context = context;
         
-        // 配置 Markwon 支持链接
+        // 配置 Markwon 支持图片、链接和视频
         this.markwon = Markwon.builder(context)
                 .usePlugin(SoftBreakAddsNewLinePlugin.create())
+                .usePlugin(GlideImagesPlugin.create(context))
+                .usePlugin(LinkifyPlugin.create())
+                .usePlugin(new AbstractMarkwonPlugin() {
+                    @Override
+                    public void configureConfiguration(@NonNull MarkwonConfiguration.Builder builder) {
+                        builder.linkResolver((view, link) -> {
+                            // 检查是否是图片或视频链接
+                            if (isImageUrl(link)) {
+                                // 图片在 APP 内展示（已由 GlideImagesPlugin 处理）
+                                openImageViewer(link);
+                            } else if (isVideoUrl(link)) {
+                                // 视频在 APP 内播放
+                                openVideoPlayer(link);
+                            } else {
+                                // 其他链接在浏览器中打开
+                                openUrlInBrowser(link);
+                            }
+                        });
+                    }
+                })
                 .build();
+    }
+    
+    private boolean isImageUrl(String url) {
+        String lowerUrl = url.toLowerCase();
+        return lowerUrl.endsWith(".jpg") || lowerUrl.endsWith(".jpeg") || 
+               lowerUrl.endsWith(".png") || lowerUrl.endsWith(".gif") || 
+               lowerUrl.endsWith(".webp") || lowerUrl.endsWith(".bmp");
+    }
+    
+    private boolean isVideoUrl(String url) {
+        String lowerUrl = url.toLowerCase();
+        return lowerUrl.endsWith(".mp4") || lowerUrl.endsWith(".webm") || 
+               lowerUrl.endsWith(".mkv") || lowerUrl.endsWith(".avi") ||
+               lowerUrl.endsWith(".mov") || lowerUrl.endsWith(".m3u8");
+    }
+    
+    private void openImageViewer(String imageUrl) {
+        Intent intent = new Intent(context, ImageViewerActivity.class);
+        intent.putExtra("image_url", imageUrl);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        context.startActivity(intent);
+    }
+    
+    private void openVideoPlayer(String videoUrl) {
+        Intent intent = new Intent(context, VideoPlayerActivity.class);
+        intent.putExtra("video_url", videoUrl);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        context.startActivity(intent);
+    }
+    
+    private void openUrlInBrowser(String url) {
+        try {
+            // 确保 URL 有协议前缀
+            if (!url.startsWith("http://") && !url.startsWith("https://")) {
+                url = "http://" + url;
+            }
+            
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(intent);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
     
     @Override
@@ -193,23 +265,7 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.MessageViewHol
             }
         }
         
-        /**
-         * 在浏览器中打开 URL
-         */
-        private void openUrlInBrowser(String url) {
-            try {
-                // 确保 URL 有协议前缀
-                if (!url.startsWith("http://") && !url.startsWith("https://")) {
-                    url = "http://" + url;
-                }
-                
-                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                context.startActivity(intent);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
+
         
         private String getAvatarText(ChatMessage message) {
             if (message.isGptResponse()) {
