@@ -35,7 +35,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
         // 隐藏状态栏和导航栏，全屏显示
         hideSystemUI();
         
-        setContentView(R.layout.activity_video_player);
+        setContentView(R.layout.activity_video_player_upload);
         
         videoView = findViewById(R.id.video_view);
         
