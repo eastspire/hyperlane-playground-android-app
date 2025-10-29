@@ -38,6 +38,9 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.MessageViewHol
     private static final int VIEW_TYPE_OTHER = 2;
     private static final int VIEW_TYPE_GPT = 3;
     
+    // 服务器地址配置（与 ChatApiService 保持一致）
+    private static final String BASE_URL = "http://120.53.248.2:65002";
+    
     private List<ChatMessage> messages;
     private Context context;
     private Markwon markwon;
@@ -49,7 +52,21 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.MessageViewHol
         // 配置 Markwon 支持图片、链接和视频
         this.markwon = Markwon.builder(context)
                 .usePlugin(SoftBreakAddsNewLinePlugin.create())
-                .usePlugin(GlideImagesPlugin.create(context))
+                .usePlugin(GlideImagesPlugin.create(new GlideImagesPlugin.GlideStore() {
+                    @NonNull
+                    @Override
+                    public com.bumptech.glide.RequestBuilder<Drawable> load(@NonNull AsyncDrawable drawable) {
+                        // 获取图片 URL 并转换为完整 URL
+                        String destination = drawable.getDestination();
+                        String fullUrl = toAbsoluteUrl(destination);
+                        return Glide.with(context).load(fullUrl);
+                    }
+                    
+                    @Override
+                    public void cancel(@NonNull Target<?> target) {
+                        Glide.with(context).clear(target);
+                    }
+                }))
                 .usePlugin(LinkifyPlugin.create())
                 .usePlugin(new AbstractMarkwonPlugin() {
                     @Override
@@ -57,7 +74,7 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.MessageViewHol
                         builder.linkResolver((view, link) -> {
                             // 检查是否是图片或视频链接
                             if (isImageUrl(link)) {
-                                // 图片在 APP 内展示（已由 GlideImagesPlugin 处理）
+                                // 图片在 APP 内展示
                                 openImageViewer(link);
                             } else if (isVideoUrl(link)) {
                                 // 视频在 APP 内播放
@@ -70,6 +87,59 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.MessageViewHol
                     }
                 })
                 .build();
+    }
+    
+    /**
+     * 将相对路径 URL 转换为完整 URL
+     * 例如：/upload/file/xxx.mp4 -> http://120.53.248.2:65002/upload/file/xxx.mp4
+     */
+    private String toAbsoluteUrl(String url) {
+        if (url == null || url.isEmpty()) {
+            return url;
+        }
+        
+        // 如果已经是完整 URL，直接返回
+        if (url.startsWith("http://") || url.startsWith("https://")) {
+            return url;
+        }
+        
+        // 如果是相对路径，拼接服务器地址
+        if (url.startsWith("/")) {
+            return BASE_URL + url;
+        }
+        
+        // 其他情况也拼接服务器地址
+        return BASE_URL + "/" + url;
+    }
+    
+    /**
+     * 预处理消息内容，将 Markdown 中的相对路径转换为完整 URL
+     * 例如：[文件](/upload/file/xxx.mp4) -> [文件](http://120.53.248.2:65002/upload/file/xxx.mp4)
+     *      ![图片](/upload/image/pic.jpg) -> ![图片](http://120.53.248.2:65002/upload/image/pic.jpg)
+     */
+    private String preprocessMessageContent(String content) {
+        if (content == null || content.isEmpty()) {
+            return content;
+        }
+        
+        // 匹配 Markdown 链接格式：[文本](url) 或 ![文本](url)
+        Pattern linkPattern = Pattern.compile("(!?\\[[^\\]]*\\])\\(([^)]+)\\)");
+        Matcher matcher = linkPattern.matcher(content);
+        StringBuffer result = new StringBuffer();
+        
+        while (matcher.find()) {
+            String prefix = matcher.group(1);  // [文本] 或 ![文本]
+            String url = matcher.group(2);     // url
+            
+            // 转换相对路径为完整 URL
+            String fullUrl = toAbsoluteUrl(url);
+            
+            // 替换为完整 URL
+            matcher.appendReplacement(result, prefix + "(" + fullUrl + ")");
+        }
+        matcher.appendTail(result);
+        
+        return result.toString();
     }
     
     private boolean isImageUrl(String url) {
@@ -87,15 +157,21 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.MessageViewHol
     }
     
     private void openImageViewer(String imageUrl) {
+        // 转换为完整 URL
+        String fullUrl = toAbsoluteUrl(imageUrl);
+        
         Intent intent = new Intent(context, ImageViewerActivity.class);
-        intent.putExtra("image_url", imageUrl);
+        intent.putExtra("image_url", fullUrl);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         context.startActivity(intent);
     }
     
     private void openVideoPlayer(String videoUrl) {
+        // 转换为完整 URL
+        String fullUrl = toAbsoluteUrl(videoUrl);
+        
         Intent intent = new Intent(context, VideoPlayerActivity.class);
-        intent.putExtra("video_url", videoUrl);
+        intent.putExtra("video_url", fullUrl);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         context.startActivity(intent);
     }
@@ -185,16 +261,30 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.MessageViewHol
             }
             
             if (tvMessage != null) {
-                // First render markdown
-                markwon.setMarkdown(tvMessage, message.getData());
+                // 预处理消息内容，将相对路径转换为完整 URL
+                String processedContent = preprocessMessageContent(message.getData());
                 
-                // Then apply mention formatting
-                CharSequence formattedText = MentionFormatter.formatMentions(tvMessage.getText().toString());
-                tvMessage.setText(formattedText);
+                // Render markdown (包含链接、图片等)
+                markwon.setMarkdown(tvMessage, processedContent);
                 
-                // 处理所有链接，使其在浏览器中打开
+                // 获取 Markdown 渲染后的 Spannable
+                CharSequence markdownText = tvMessage.getText();
+                
+                // 在 Spannable 上应用 mention 格式化（保留原有的 spans）
+                if (markdownText instanceof Spannable) {
+                    Spannable spannable = (Spannable) markdownText;
+                    CharSequence formattedText = MentionFormatter.formatMentionsOnSpannable(spannable);
+                    tvMessage.setText(formattedText);
+                } else {
+                    // 如果不是 Spannable，使用原来的方法
+                    CharSequence formattedText = MentionFormatter.formatMentions(markdownText.toString());
+                    tvMessage.setText(formattedText);
+                }
+                
+                // 处理所有链接，使其可点击
                 makeLinkClickable(tvMessage);
                 
+                // 必须设置 LinkMovementMethod 才能使链接可点击
                 tvMessage.setMovementMethod(LinkMovementMethod.getInstance());
             }
             
