@@ -86,6 +86,15 @@
 ```
 访问 https://www.google.com 了解更多
 查看 http://example.com 的内容
+服务器地址：http://120.53.248.2:65002
+本地测试：http://192.168.1.1:8080/api
+```
+
+### IP地址和端口号支持 ✨
+```
+http://192.168.1.1:8080          → 支持
+http://120.53.248.2:65002        → 支持
+https://10.0.0.1:3000/api/test   → 支持
 ```
 
 ### 自动补全协议
@@ -97,11 +106,19 @@ example.com     → 自动转为 http://example.com
 ## 技术细节
 
 ### URL 正则表达式
+支持两种格式的 URL：
+
+1. **域名格式**：`https?://(?:[a-zA-Z0-9\-]+\.)*[a-zA-Z0-9\-]+(?::[0-9]+)?(?:/[^\s]*)?`
+   - 示例：`http://example.com`, `https://www.google.com:8080/path`
+
+2. **IP地址格式**：`https?://(?:[0-9]{1,3}\.){3}[0-9]{1,3}(?::[0-9]+)?(?:/[^\s]*)?`
+   - 示例：`http://192.168.1.1`, `http://120.53.248.2:65002/api/chat`
+
 ```java
-Pattern urlPattern = Pattern.compile(
-    "(https?://[\\w\\-._~:/?#\\[\\]@!$&'()*+,;=%]+)",
-    Pattern.CASE_INSENSITIVE
-);
+String domainUrl = "https?://(?:[a-zA-Z0-9\\-]+\\.)*[a-zA-Z0-9\\-]+(?::[0-9]+)?(?:/[^\\s]*)?";
+String ipUrl = "https?://(?:[0-9]{1,3}\\.){3}[0-9]{1,3}(?::[0-9]+)?(?:/[^\\s]*)?";
+String urlRegex = "(" + domainUrl + "|" + ipUrl + ")";
+Pattern urlPattern = Pattern.compile(urlRegex, Pattern.CASE_INSENSITIVE);
 ```
 
 ### ClickableSpan 实现

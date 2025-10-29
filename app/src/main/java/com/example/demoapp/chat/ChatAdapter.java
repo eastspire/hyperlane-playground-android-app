@@ -164,11 +164,14 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.MessageViewHol
                 String plainText = text.toString();
                 Spannable spannable = new SpannableString(plainText);
                 
-                // 匹配 URL 模式
-                Pattern urlPattern = Pattern.compile(
-                    "(https?://[\\w\\-._~:/?#\\[\\]@!$&'()*+,;=%]+)",
-                    Pattern.CASE_INSENSITIVE
-                );
+                // 匹配 URL 模式（支持域名、IP地址和端口号）
+                // 示例：http://example.com, https://192.168.1.1:8080, http://120.53.248.2:65002
+                // 分两部分：域名URL 或 IP地址URL
+                String domainUrl = "https?://(?:[a-zA-Z0-9\\-]+\\.)*[a-zA-Z0-9\\-]+(?::[0-9]+)?(?:/[^\\s]*)?";
+                String ipUrl = "https?://(?:[0-9]{1,3}\\.){3}[0-9]{1,3}(?::[0-9]+)?(?:/[^\\s]*)?";
+                String urlRegex = "(" + domainUrl + "|" + ipUrl + ")";
+                
+                Pattern urlPattern = Pattern.compile(urlRegex, Pattern.CASE_INSENSITIVE);
                 Matcher matcher = urlPattern.matcher(plainText);
                 
                 while (matcher.find()) {
