@@ -50,6 +50,14 @@ public class ChatFragment extends Fragment {
     private boolean isNearBottom = true;
     private int unreadCount = 0;
     
+    // History loading
+    private com.example.demoapp.chat.ChatApiService apiService;
+    private Long beforeId = null;
+    private int historyLimit = 20;
+    private boolean loadingHistory = false;
+    private boolean hasMoreHistory = true;
+    private View historyLoadingIndicator;
+    
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -64,6 +72,14 @@ public class ChatFragment extends Fragment {
         setupRecyclerView();
         setupWebSocket();
         setupListeners();
+        setupApiService();
+        
+        // 首次进入加载历史消息
+        loadHistory();
+    }
+    
+    private void setupApiService() {
+        apiService = new com.example.demoapp.chat.ChatApiService();
     }
     
     private void initViews(View view) {
@@ -89,6 +105,14 @@ public class ChatFragment extends Fragment {
             public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
                 super.onScrolled(recyclerView, dx, dy);
                 checkScrollPosition();
+                
+                // 检测是否滚动到顶部，触发加载历史消息
+                LinearLayoutManager lm = (LinearLayoutManager) recyclerView.getLayoutManager();
+                if (lm != null && lm.findFirstVisibleItemPosition() == 0) {
+                    if (!loadingHistory && hasMoreHistory) {
+                        loadHistory();
+                    }
+                }
             }
         });
     }
@@ -389,12 +413,113 @@ public class ChatFragment extends Fragment {
         inputMessage.setHint(placeholder);
     }
     
+    /**
+     * 加载历史消息
+     */
+    private void loadHistory() {
+        if (loadingHistory || !hasMoreHistory) {
+            return;
+        }
+        
+        loadingHistory = true;
+        showLoadingIndicator();
+        
+        String sessionId = UUIDHelper.getUUID();
+        apiService.getChatHistory(sessionId, beforeId, historyLimit, new com.example.demoapp.chat.ChatApiService.HistoryCallback() {
+            @Override
+            public void onSuccess(List<ChatMessage> historyMessages, boolean hasMore) {
+                mainHandler.post(() -> {
+                    loadingHistory = false;
+                    hideLoadingIndicator();
+                    
+                    if (!historyMessages.isEmpty()) {
+                        // 获取当前第一个可见项的位置，用于保持滚动位置
+                        LinearLayoutManager layoutManager = (LinearLayoutManager) recyclerView.getLayoutManager();
+                        int firstVisiblePosition = layoutManager != null ? layoutManager.findFirstVisibleItemPosition() : 0;
+                        View firstVisibleView = layoutManager != null ? layoutManager.findViewByPosition(firstVisiblePosition) : null;
+                        int offsetTop = firstVisibleView != null ? firstVisibleView.getTop() : 0;
+                        
+                        // 设置消息的isSelf属性
+                        String currentUuid = UUIDHelper.getUUID();
+                        for (ChatMessage msg : historyMessages) {
+                            msg.setSelf(msg.getName().equals(currentUuid));
+                        }
+                        
+                        // 在列表开头插入历史消息
+                        messages.addAll(0, historyMessages);
+                        adapter.notifyItemRangeInserted(0, historyMessages.size());
+                        
+                        // 更新beforeId为最旧消息的ID
+                        beforeId = historyMessages.get(0).getId();
+                        hasMoreHistory = hasMore;
+                        
+                        // 恢复滚动位置
+                        if (layoutManager != null) {
+                            layoutManager.scrollToPositionWithOffset(firstVisiblePosition + historyMessages.size(), offsetTop);
+                        }
+                        
+                        NativeLogManager.getInstance().d(TAG, "加载了 " + historyMessages.size() + " 条历史消息");
+                    } else {
+                        hasMoreHistory = false;
+                        NativeLogManager.getInstance().d(TAG, "没有更多历史消息");
+                    }
+                });
+            }
+            
+            @Override
+            public void onError(String error) {
+                mainHandler.post(() -> {
+                    loadingHistory = false;
+                    hideLoadingIndicator();
+                    Toast.makeText(getContext(), "加载历史消息失败: " + error, Toast.LENGTH_SHORT).show();
+                    NativeLogManager.getInstance().e(TAG, "加载历史消息失败: " + error);
+                });
+            }
+        });
+    }
+    
+    /**
+     * 显示加载指示器
+     */
+    private void showLoadingIndicator() {
+        if (historyLoadingIndicator == null && getView() != null) {
+            // 创建加载指示器
+            historyLoadingIndicator = LayoutInflater.from(getContext()).inflate(R.layout.item_loading_history, null);
+            
+            // 将指示器添加到RecyclerView的父容器顶部
+            ViewGroup parent = (ViewGroup) recyclerView.getParent();
+            if (parent != null) {
+                parent.addView(historyLoadingIndicator, 0);
+            }
+        }
+        
+        if (historyLoadingIndicator != null) {
+            historyLoadingIndicator.setVisibility(View.VISIBLE);
+        }
+    }
+    
+    /**
+     * 隐藏加载指示器
+     */
+    private void hideLoadingIndicator() {
+        if (historyLoadingIndicator != null) {
+            historyLoadingIndicator.setVisibility(View.GONE);
+        }
+    }
+    
     @Override
     public void onDestroyView() {
         super.onDestroyView();
         if (webSocketManager != null) {
             webSocketManager.disconnect();
         }
+        
+        // 清理加载指示器
+        if (historyLoadingIndicator != null && historyLoadingIndicator.getParent() != null) {
+            ((ViewGroup) historyLoadingIndicator.getParent()).removeView(historyLoadingIndicator);
+            historyLoadingIndicator = null;
+        }
+        
         NativeLogManager.getInstance().i(TAG, "ChatFragment 销毁");
     }
 }

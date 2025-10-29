@@ -17,6 +17,7 @@ public class ChatApiService {
     
     private static final String BASE_URL = "http://120.53.248.2:65002";
     private static final String ONLINE_USERS_URL = BASE_URL + "/chat/users/online";
+    private static final String CHAT_HISTORY_URL = BASE_URL + "/api/chat/history";
     private static final String UPLOAD_REGISTER_URL = BASE_URL + "/api/upload/register";
     private static final String UPLOAD_SAVE_URL = BASE_URL + "/api/upload/save";
     private static final String UPLOAD_MERGE_URL = BASE_URL + "/api/upload/merge";
@@ -36,6 +37,11 @@ public class ChatApiService {
     
     public interface OnlineUsersCallback {
         void onSuccess(List<OnlineUser> users);
+        void onError(String error);
+    }
+    
+    public interface HistoryCallback {
+        void onSuccess(List<ChatMessage> messages, boolean hasMore);
         void onError(String error);
     }
     
@@ -80,6 +86,98 @@ public class ChatApiService {
                 }
             }
         });
+    }
+    
+    /**
+     * 获取聊天历史记录
+     * 
+     * @param sessionId 会话ID（用户UUID）
+     * @param beforeId 在此消息ID之前的消息（用于分页）
+     * @param limit 每次加载的消息数量
+     * @param callback 回调
+     */
+    public void getChatHistory(String sessionId, Long beforeId, int limit, HistoryCallback callback) {
+        StringBuilder urlBuilder = new StringBuilder(CHAT_HISTORY_URL);
+        urlBuilder.append("?session_id=").append(sessionId);
+        urlBuilder.append("&limit=").append(limit);
+        
+        if (beforeId != null) {
+            urlBuilder.append("&before_id=").append(beforeId);
+        }
+        
+        Request request = new Request.Builder()
+                .url(urlBuilder.toString())
+                .get()
+                .build();
+        
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                callback.onError(e.getMessage());
+            }
+            
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (response.isSuccessful() && response.body() != null) {
+                    try {
+                        String json = response.body().string();
+                        JsonObject result = gson.fromJson(json, JsonObject.class);
+                        
+                        if (result.has("code") && result.get("code").getAsInt() == 200) {
+                            JsonObject data = result.getAsJsonObject("data");
+                            boolean hasMore = data.has("has_more") && data.get("has_more").getAsBoolean();
+                            
+                            List<ChatMessage> messages = new ArrayList<>();
+                            if (data.has("messages")) {
+                                data.getAsJsonArray("messages").forEach(element -> {
+                                    JsonObject msgObj = element.getAsJsonObject();
+                                    ChatMessage message = parseChatMessage(msgObj);
+                                    if (message != null) {
+                                        messages.add(message);
+                                    }
+                                });
+                            }
+                            
+                            callback.onSuccess(messages, hasMore);
+                            return;
+                        }
+                        callback.onError("Invalid response format");
+                    } catch (Exception e) {
+                        callback.onError("Parse error: " + e.getMessage());
+                    }
+                } else {
+                    callback.onError("Request failed: " + response.code());
+                }
+            }
+        });
+    }
+    
+    /**
+     * 解析聊天消息JSON对象
+     */
+    private ChatMessage parseChatMessage(JsonObject msgObj) {
+        try {
+            Long id = msgObj.has("id") ? msgObj.get("id").getAsLong() : null;
+            String type = msgObj.has("message_type") ? msgObj.get("message_type").getAsString() : "text";
+            String name = msgObj.has("sender_name") ? msgObj.get("sender_name").getAsString() : "";
+            String data = msgObj.has("content") ? msgObj.get("content").getAsString() : "";
+            String time = msgObj.has("created_at") ? msgObj.get("created_at").getAsString() : "";
+            
+            ChatMessage message = new ChatMessage(type, name, data, time);
+            message.setId(id);
+            
+            // 判断是否是自己发送的消息
+            String senderType = msgObj.has("sender_type") ? msgObj.get("sender_type").getAsString() : "";
+            String sessionId = msgObj.has("session_id") ? msgObj.get("session_id").getAsString() : "";
+            
+            // 这里需要与当前用户的UUID比较，暂时先设置为false
+            // 在Fragment中会根据实际情况重新设置
+            message.setSelf(false);
+            
+            return message;
+        } catch (Exception e) {
+            return null;
+        }
     }
     
     public interface UploadCallback {

@@ -1,6 +1,7 @@
 package com.example.demoapp.chat;
 
 public class ChatMessage {
+    private Long id;  // 用于分页加载历史消息
     private String type;
     private String name;
     private String data;
@@ -12,6 +13,14 @@ public class ChatMessage {
         this.name = name;
         this.data = data;
         this.time = time;
+    }
+    
+    public Long getId() {
+        return id;
+    }
+    
+    public void setId(Long id) {
+        this.id = id;
     }
     
     public String getType() {
