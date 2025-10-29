@@ -114,7 +114,7 @@ public class ChatFragmentNew extends Fragment {
     private void setupRecyclerView() {
         adapter = new ChatAdapter(messages, getContext());
         LinearLayoutManager layoutManager = new LinearLayoutManager(getContext());
-        layoutManager.setStackFromEnd(true);
+        // 移除 setStackFromEnd，让消息从顶部对齐
         recyclerView.setLayoutManager(layoutManager);
         recyclerView.setAdapter(adapter);
         
