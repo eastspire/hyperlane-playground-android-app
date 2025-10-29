@@ -1,8 +1,15 @@
 package com.example.demoapp.chat;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Color;
+import android.net.Uri;
+import android.text.Spannable;
+import android.text.SpannableString;
+import android.text.Spanned;
 import android.text.method.LinkMovementMethod;
+import android.text.style.ClickableSpan;
+import android.text.style.URLSpan;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,6 +20,8 @@ import com.example.demoapp.R;
 import io.noties.markwon.Markwon;
 import io.noties.markwon.SoftBreakAddsNewLinePlugin;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.MessageViewHolder> {
     
@@ -28,7 +37,7 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.MessageViewHol
         this.messages = messages;
         this.context = context;
         
-        // 简化版本：只使用基础 Markdown 渲染，不使用语法高亮
+        // 配置 Markwon 支持链接
         this.markwon = Markwon.builder(context)
                 .usePlugin(SoftBreakAddsNewLinePlugin.create())
                 .build();
@@ -111,11 +120,91 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.MessageViewHol
                 CharSequence formattedText = MentionFormatter.formatMentions(tvMessage.getText().toString());
                 tvMessage.setText(formattedText);
                 
+                // 处理所有链接，使其在浏览器中打开
+                makeLinkClickable(tvMessage);
+                
                 tvMessage.setMovementMethod(LinkMovementMethod.getInstance());
             }
             
             if (tvTime != null) {
                 tvTime.setText(message.getTime());
+            }
+        }
+        
+        /**
+         * 使 TextView 中的所有链接可点击，并在浏览器中打开
+         */
+        private void makeLinkClickable(TextView textView) {
+            CharSequence text = textView.getText();
+            if (text instanceof Spannable) {
+                Spannable spannable = (Spannable) text;
+                URLSpan[] spans = spannable.getSpans(0, spannable.length(), URLSpan.class);
+                
+                for (URLSpan span : spans) {
+                    int start = spannable.getSpanStart(span);
+                    int end = spannable.getSpanEnd(span);
+                    int flags = spannable.getSpanFlags(span);
+                    
+                    // 移除原有的 URLSpan
+                    spannable.removeSpan(span);
+                    
+                    // 创建新的 ClickableSpan，在浏览器中打开链接
+                    ClickableSpan clickableSpan = new ClickableSpan() {
+                        @Override
+                        public void onClick(@NonNull View widget) {
+                            String url = span.getURL();
+                            openUrlInBrowser(url);
+                        }
+                    };
+                    
+                    spannable.setSpan(clickableSpan, start, end, flags);
+                }
+            } else {
+                // 如果不是 Spannable，尝试检测纯文本中的 URL
+                String plainText = text.toString();
+                Spannable spannable = new SpannableString(plainText);
+                
+                // 匹配 URL 模式
+                Pattern urlPattern = Pattern.compile(
+                    "(https?://[\\w\\-._~:/?#\\[\\]@!$&'()*+,;=%]+)",
+                    Pattern.CASE_INSENSITIVE
+                );
+                Matcher matcher = urlPattern.matcher(plainText);
+                
+                while (matcher.find()) {
+                    final String url = matcher.group(1);
+                    int start = matcher.start(1);
+                    int end = matcher.end(1);
+                    
+                    ClickableSpan clickableSpan = new ClickableSpan() {
+                        @Override
+                        public void onClick(@NonNull View widget) {
+                            openUrlInBrowser(url);
+                        }
+                    };
+                    
+                    spannable.setSpan(clickableSpan, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }
+                
+                textView.setText(spannable);
+            }
+        }
+        
+        /**
+         * 在浏览器中打开 URL
+         */
+        private void openUrlInBrowser(String url) {
+            try {
+                // 确保 URL 有协议前缀
+                if (!url.startsWith("http://") && !url.startsWith("https://")) {
+                    url = "http://" + url;
+                }
+                
+                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(intent);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
         
